@@ -1,0 +1,24 @@
+{
+  "author": "Agora",
+  "name": "agora-access-control-evm",
+  "version": "0.0.1",
+  "description": "Contracts for Access Control",
+  "scripts": {
+    "test": "",
+    "prepare": "husky install",
+    "format": "forge fmt src",
+    "lint:staged": "prettier --config ./.prettierrc.json --write src"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.1"
+  },
+  "devDependencies": {
+    "husky": "^8.0.3",
+    "lint-staged": "^13.3.0",
+    "prettier": "^3.2.5",
+    "solhint-community": "^3.7.0",
+    "solhint-plugin-prettier": "^0.1.0",
+    "typescript": "^5.3.3"
+  }
+}
