@@ -15,14 +15,17 @@ pragma solidity 0.8.21;
 import { ConstructorParams as OwnableAccessControlParams, OwnableAccessControl } from "./OwnableAccessControl.sol";
 
 import { IAgoraDollar } from "interfaces/IAgoraDollar.sol";
+import { IAgoraProxyAdmin } from "interfaces/IAgoraProxyAdmin.sol";
 
 struct ConstructorParams {
     address ownerAddress;
     address agoraDollarAddress;
+    address agoraDollarProxyAdminAddress;
 }
 
 contract AgoraPrivilegedRole is OwnableAccessControl {
     IAgoraDollar public immutable agoraDollar;
+    IAgoraProxyAdmin public immutable agoraDollarProxyAdmin;
 
     constructor(
         ConstructorParams memory _params
@@ -37,6 +40,11 @@ contract AgoraPrivilegedRole is OwnableAccessControl {
     function acceptTransferRole(bytes32 _roleId) external {
         _requireSenderIsOwner();
         agoraDollar.acceptTransferRole({ _role: _roleId });
+    }
+
+    function transferRole(bytes32 _roleId, address _newAddress) external {
+        _requireSenderIsOwner();
+        agoraDollar.transferRole({ _role: _roleId, _newAddress: _newAddress });
     }
 
     //==============================================================================
@@ -62,7 +70,7 @@ contract AgoraPrivilegedRole is OwnableAccessControl {
         emit SetMinterThrottleInfo({ minter: _minter, maxMintAmount: _maxMintAmount, mintWindow: _mintWindow });
     }
 
-    function batchMint(IAgoraDollar.BatchMintParam[] memory _mints) external {
+    function batchMint(IAgoraDollar.BatchMintParam[] memory _mints) public {
         // Checks: ensure sender has the authority to call this function
         _requireIsRole(msg.sender);
 
@@ -83,6 +91,12 @@ contract AgoraPrivilegedRole is OwnableAccessControl {
         agoraDollar.batchMint(_mints);
     }
 
+    function mint(address _receiverAddress, uint256 _value) external {
+        IAgoraDollar.BatchMintParam[] memory _mints = new IAgoraDollar.BatchMintParam[](1);
+        _mints[0] = IAgoraDollar.BatchMintParam({ receiverAddress: _receiverAddress, value: _value });
+        batchMint(_mints);
+    }
+
     function getSumOfMints(address _account, uint256 _window) public view returns (uint256 _sum) {
         uint256 _windowStart = block.timestamp - _window;
         uint256 _length = historicalMints[_account].length;
@@ -101,9 +115,15 @@ contract AgoraPrivilegedRole is OwnableAccessControl {
     // Burner Role Functions
     //==============================================================================
 
-    function batchBurnFrom(IAgoraDollar.BatchBurnFromParam[] memory _burns) external {
+    function batchBurnFrom(IAgoraDollar.BatchBurnFromParam[] memory _burns) public {
         _requireIsRole(msg.sender);
         agoraDollar.batchBurnFrom(_burns);
+    }
+
+    function burnFrom(address _burnFormAddress, uint256 _value) external {
+        IAgoraDollar.BatchBurnFromParam[] memory _burns = new IAgoraDollar.BatchBurnFromParam[](1);
+        _burns[0] = IAgoraDollar.BatchBurnFromParam({ burnFromAddress: _burnFormAddress, value: _value });
+        batchBurnFrom(_burns);
     }
 
     //==============================================================================
@@ -129,6 +149,11 @@ contract AgoraPrivilegedRole is OwnableAccessControl {
         agoraDollar.setIsMintPaused(_isPaused);
     }
 
+    function setIsBurnFromPaused(bool _isPaused) external {
+        _requireIsRole(msg.sender);
+        agoraDollar.setIsBurnFromPaused(_isPaused);
+    }
+
     function setIsFreezingPaused(bool _isPaused) external {
         _requireIsRole(msg.sender);
         agoraDollar.setIsFreezingPaused(_isPaused);
@@ -137,6 +162,54 @@ contract AgoraPrivilegedRole is OwnableAccessControl {
     function setIsTransferPaused(bool _isPaused) external {
         _requireIsRole(msg.sender);
         agoraDollar.setIsTransferPaused(_isPaused);
+    }
+
+    function setIsSignatureVerificationPaused(bool _isPaused) external {
+        _requireIsRole(msg.sender);
+        agoraDollar.setIsSignatureVerificationPaused(_isPaused);
+    }
+
+    //==============================================================================
+    // Admin Functions
+    //==============================================================================
+
+    function upgradeToAndCall(address _newImplementation, bytes memory _data) external {
+        _requireIsRole(msg.sender);
+        agoraDollarProxyAdmin.upgradeAndCall({
+            proxy: address(agoraDollar),
+            implementation: _newImplementation,
+            data: _data
+        });
+    }
+
+    function proxyAdminTransferOwnership(address _newAdmin) external {
+        _requireIsRole(msg.sender);
+        agoraDollarProxyAdmin.transferOwnership(_newAdmin);
+    }
+
+    function proxyAdminAcceptOwnership() external {
+        _requireIsRole(msg.sender);
+        agoraDollarProxyAdmin.acceptOwnership();
+    }
+
+    function setIsMsgSenderCheckEnabled(bool _isEnabled) external {
+        _requireIsRole(msg.sender);
+        agoraDollar.setIsMsgSenderCheckEnabled(_isEnabled);
+    }
+
+    function setIsReceiveWithAuthorizationUpgraded(bool _isUpgraded) external {
+        _requireIsRole(msg.sender);
+        agoraDollar.setIsReceiveWithAuthorizationUpgraded(_isUpgraded);
+    }
+
+    function setIsTransferUpgraded(bool _isUpgraded) external {
+        _requireIsRole(msg.sender);
+        agoraDollar.setIsTransferUpgraded(_isUpgraded);
+    }
+
+    function setIsTransferWithAuthorizationUpgraded(bool _isUpgraded) external {
+        _requireIsRole(msg.sender);
+        agoraDollar.setIsTransferWithAuthorizationUpgraded(_isUpgraded);
     }
 
     //==============================================================================

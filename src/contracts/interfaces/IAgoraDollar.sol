@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.20;
+pragma solidity >=0.8.0;
 
 import { IErc1967Proxy } from "./IErc1967Proxy.sol";
 import { ITransparentUpgradeableProxy } from "./ITransparentUpgradeableProxy.sol";
@@ -25,6 +25,7 @@ interface IAgoraDollar is IErc1967Proxy, ITransparentUpgradeableProxy {
         string symbol;
         string eip712Name;
         string eip712Version;
+        address proxyAddress;
     }
 
     struct Erc20AccountData {
@@ -32,13 +33,10 @@ interface IAgoraDollar is IErc1967Proxy, ITransparentUpgradeableProxy {
         uint248 balance;
     }
 
-    struct InitializeParams {
-        address initialAdminAddress;
-    }
-
     error AccountIsFrozen(address frozenAccount);
     error AddressIsNotPendingRole(bytes32 role);
     error AddressIsNotRole(bytes32 role);
+    error BurnFromPaused();
     error ERC20InsufficientAllowance(address spender, uint256 allowance, uint256 needed);
     error ERC20InsufficientBalance(address sender, uint256 balance, uint256 needed);
     error ERC20InvalidApprover(address approver);
@@ -56,6 +54,7 @@ interface IAgoraDollar is IErc1967Proxy, ITransparentUpgradeableProxy {
     error InvalidSignature();
     error MintPaused();
     error NotInitializing();
+    error SignatureVerificationPaused();
     error StringTooLong(string str);
     error UsedOrCanceledAuthorization();
 
@@ -69,10 +68,12 @@ interface IAgoraDollar is IErc1967Proxy, ITransparentUpgradeableProxy {
     event Minted(address indexed receiver, uint256 value);
     event RoleTransferStarted(bytes32 role, address indexed previousAddress, address indexed newAddress);
     event RoleTransferred(bytes32 role, address indexed previousAddress, address indexed newAddress);
+    event SetIsBurnFromPaused(bool isPaused);
     event SetIsFreezingPaused(bool isPaused);
     event SetIsMintPaused(bool isPaused);
     event SetIsMsgSenderCheckEnabled(bool isEnabled);
     event SetIsReceiveWithAuthorizationUpgraded(bool isUpgraded);
+    event SetIsSignatureVerificationPaused(bool isPaused);
     event SetIsTransferFromUpgraded(bool isUpgraded);
     event SetIsTransferPaused(bool isPaused);
     event SetIsTransferUpgraded(bool isUpgraded);
@@ -86,10 +87,12 @@ interface IAgoraDollar is IErc1967Proxy, ITransparentUpgradeableProxy {
     function ERC20_CORE_STORAGE_SLOT() external pure returns (bytes32);
     function ERC2612_STORAGE_SLOT() external pure returns (bytes32);
     function FREEZER_ROLE() external view returns (bytes32);
+    function IS_BURN_FROM_PAUSED_BIT_POSITION() external pure returns (uint256);
     function IS_FREEZING_PAUSED_BIT_POSITION() external pure returns (uint256);
     function IS_MINT_PAUSED_BIT_POSITION() external pure returns (uint256);
     function IS_MSG_SENDER_FROZEN_CHECK_ENABLED_BIT_POSITION() external pure returns (uint256);
     function IS_RECEIVE_WITH_AUTHORIZATION_UPGRADED_BIT_POSITION() external pure returns (uint256);
+    function IS_SIGNATURE_VERIFICATION_PAUSED_BIT_POSITION() external pure returns (uint256);
     function IS_TRANSFER_FROM_UPGRADED_BIT_POSITION() external pure returns (uint256);
     function IS_TRANSFER_PAUSED_BIT_POSITION() external pure returns (uint256);
     function IS_TRANSFER_UPGRADED_BIT_POSITION() external pure returns (uint256);
@@ -130,11 +133,14 @@ interface IAgoraDollar is IErc1967Proxy, ITransparentUpgradeableProxy {
     function getRoleData(bytes32 _roleId) external view returns (AgoraDollarAccessControlRoleData memory);
     function hashTypedDataV4(bytes32 _structHash) external view returns (bytes32);
     function implementation() external view returns (address);
-    function initialize(InitializeParams memory _initializeParams) external;
+    function initialize(address _initialAdminAddress) external;
     function isAccountFrozen(address _account) external view returns (bool);
+    function isBurnFromPaused() external view returns (bool);
     function isFreezingPaused() external view returns (bool);
     function isMintPaused() external view returns (bool);
     function isMsgSenderFrozenCheckEnabled() external view returns (bool);
+    function isReceiveWithAuthorizationUpgraded() external view returns (bool);
+    function isSignatureVerificationPaused() external view returns (bool);
     function isTransferFromUpgraded() external view returns (bool);
     function isTransferPaused() external view returns (bool);
     function isTransferUpgraded() external view returns (bool);
@@ -185,10 +191,12 @@ interface IAgoraDollar is IErc1967Proxy, ITransparentUpgradeableProxy {
         bytes32 _r,
         bytes32 _s
     ) external;
+    function setIsBurnFromPaused(bool _isPaused) external;
     function setIsFreezingPaused(bool _isPaused) external;
     function setIsMintPaused(bool _isPaused) external;
     function setIsMsgSenderCheckEnabled(bool _isEnabled) external;
     function setIsReceiveWithAuthorizationUpgraded(bool _isUpgraded) external;
+    function setIsSignatureVerificationPaused(bool _isPaused) external;
     function setIsTransferFromUpgraded(bool _isUpgraded) external;
     function setIsTransferPaused(bool _isPaused) external;
     function setIsTransferUpgraded(bool _isUpgraded) external;
