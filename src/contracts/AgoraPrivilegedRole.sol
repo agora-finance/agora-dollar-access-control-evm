@@ -15,14 +15,17 @@ pragma solidity 0.8.21;
 import { ConstructorParams as OwnableAccessControlParams, OwnableAccessControl } from "./OwnableAccessControl.sol";
 
 import { IAgoraDollar } from "interfaces/IAgoraDollar.sol";
+import { IAgoraProxyAdmin } from "interfaces/IAgoraProxyAdmin.sol";
 
 struct ConstructorParams {
     address ownerAddress;
     address agoraDollarAddress;
+    address agoraDollarProxyAdminAddress;
 }
 
 contract AgoraPrivilegedRole is OwnableAccessControl {
     IAgoraDollar public immutable agoraDollar;
+    IAgoraProxyAdmin public immutable agoraDollarProxyAdmin;
 
     constructor(
         ConstructorParams memory _params
@@ -172,7 +175,21 @@ contract AgoraPrivilegedRole is OwnableAccessControl {
 
     function upgradeToAndCall(address _newImplementation, bytes memory _data) external {
         _requireIsRole(msg.sender);
-        agoraDollar.upgradeToAndCall(_newImplementation, _data);
+        agoraDollarProxyAdmin.upgradeAndCall({
+            proxy: address(agoraDollar),
+            implementation: _newImplementation,
+            data: _data
+        });
+    }
+
+    function proxyAdminTransferOwnership(address _newAdmin) external {
+        _requireIsRole(msg.sender);
+        agoraDollarProxyAdmin.transferOwnership(_newAdmin);
+    }
+
+    function proxyAdminAcceptOwnership() external {
+        _requireIsRole(msg.sender);
+        agoraDollarProxyAdmin.acceptOwnership();
     }
 
     function setIsMsgSenderCheckEnabled(bool _isEnabled) external {
